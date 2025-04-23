@@ -4,16 +4,36 @@ if (!isset($_SESSION['username'])) {
     header("Location: login.php");
     exit();
 }
+
+
+
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+<head>
+		<meta charset="UTF-8">
+  		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  		<title>Home</title>
+  		<link rel="stylesheet" href="css/style.css">
+  		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+	</head>
+
 </head>
 <body>
     <h2>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>!</h2>
-    <p>This is a protected page.</p>
-    <a href="logout.php">Logout</a>
+    <form method="post" action="home.php">
+        <label for="cars">Choose a car:</label>
+
+        <select name="media" id="cars">
+            <option value="movie">Movie</option>
+            <option value="show">Show</option>
+           
+        </select><br><br>
+        <input type="submit">
+    </form>
 </body>
 </html>

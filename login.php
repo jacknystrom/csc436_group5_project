@@ -5,7 +5,10 @@ $pass = $_POST['password'];
 
 
 // Use prepared statement to prevent SQL injection
-$stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? and password = ?");
+$stmt = $pdo->prepare("SELECT  userID
+FROM `users` 
+WHERE username = ? and password = SHA2(?, 256)
+");
 $stmt->bind_param("ss", $user, $pass);
 $stmt->execute();
 
