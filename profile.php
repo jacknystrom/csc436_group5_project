@@ -70,7 +70,6 @@ $movieStmt = $pdo->prepare("SELECT * FROM watched_movie WHERE userID = :userID")
 $movieStmt->execute(['userID' => $userID]);
 $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
