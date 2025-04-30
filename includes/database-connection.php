@@ -1,33 +1,27 @@
-<?php                                             // Opening PHP tag
-
+<?php
 $type     = 'mysql';                             // Type of database
-$server   = '192.185.2.183';                    // Server the database is on
-$db       = 'andrewla_content_sorter';     // Name of the database
-$port     = '3306';                           // Port is usually 3306 in Hostgator
-$charset  = 'utf8mb4';                       // UTF-8 encoding using 4 bytes of data per char
+$server   = '192.185.2.183';                     // Server the database is on
+$db       = 'andrewla_content_sorter';           // Name of the database
+$port     = '3306';                              // Port is usually 3306 in Hostgator
+$charset  = 'utf8mb4';                           // UTF-8 encoding using 4 bytes of data per char
 
-$username = 'andrewla_andrewlangille';     // Enter YOUR cPanel username and user here
-$password = 'ProjectPass0123';           // Enter YOUR user password here
-
-
+$username = 'andrewla_andrewlangille';           // Enter YOUR cPanel username and user here
+$password = 'ProjectPass0123';                   // Enter YOUR user password here
 
 // DO *NOT* CHANGE ANYTHING BENEATH THIS LINE
 
-
 // Array containing options for configuring PDO
-$options  = [                        
+$options  = [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,       // Set error mode to throw exceptions
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, // Set default fetch mode to associative array
-    PDO::ATTR_EMULATE_PREPARES => false,            // Disable emulation of prepared statements
+    PDO::ATTR_EMULATE_PREPARES => false,              // Disable emulation of prepared statements
 ];
 
-
-$dsn = "$type:host=$server;dbname=$db;port=$port;charset=$charset"; // Create DSN 
-try {                                                              // Try connecting to the db
-    $pdo = new PDO($dsn, $username, $password, $options);         // Create a new PDO instance
-} 
-catch (PDOException $e) {                  // Catch any exceptions that occur during connection
-    throw new PDOException($e->getMessage(), $e->getCode());    // Re-throw exception
+$dsn = "$type:host=$server;dbname=$db;port=$port;charset=$charset"; // Create DSN
+try {
+    $pdo = new PDO($dsn, $username, $password, $options); // Create a new PDO instance
+} catch (PDOException $e) {
+    throw new PDOException($e->getMessage(), $e->getCode()); // Re-throw exception
 }
 
 /*
@@ -39,13 +33,11 @@ catch (PDOException $e) {                  // Catch any exceptions that occur du
  * @return PDOStatement PDOStatement    A PDOStatement object containing the result set.
  */
 function pdo(PDO $pdo, string $sql, array $arguments = null)
-    {
-        if (!$arguments) {                   // If no arguments provided
-            return $pdo->query($sql);       // Run SQL query and return PDOStatement object
-        }
-        $statement = $pdo->prepare($sql);  // If arguments, prepare SQL statement
-        $statement->execute($arguments);  // Bind & execute SQL statement w/provided arguments
-        return $statement;               // Return PDOStatement object
+{
+    if (!$arguments) {
+        return $pdo->query($sql); // Run SQL query and return PDOStatement object
     }
-                                          
-// Closing PHP tag  ?>                                       
+    $statement = $pdo->prepare($sql); // If arguments, prepare SQL statement
+    $statement->execute($arguments); // Bind & execute SQL statement w/provided arguments
+    return $statement; // Return PDOStatement object
+}
