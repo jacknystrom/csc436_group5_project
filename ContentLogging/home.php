@@ -1,5 +1,6 @@
 <?php
 session_start();
+ob_start(); 
 require 'includes/database-connection.php'; // Include the database connection file
 
 $conn = $pdo; // Use the PDO connection from the included file
@@ -49,16 +50,18 @@ $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Display buttons
     echo "<div class='top-buttons' style='margin-bottom: 20px; text-align: center;'>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
+    echo "<form method='post' action='show.php' style='display: inline-block; margin: 0 10px;'>";
     echo "<button type='submit' name='return_home'>Return to Home</button>";
     echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
+    echo "<form method='post' action='profile.php' style='display: inline-block; margin: 0 10px;'>";
     echo "<button type='submit' name='go_to_profile'>Go to Profile</button>";
     echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
+    echo "<form method='post' action='logout.php' style='display: inline-block; margin: 0 10px;'>";
     echo "<button type='submit' name='logout'>Log Out</button>";
     echo "</form>";
     echo "</div>";
+
+ // Flush the output buffer to ensure the buttons are displayed immediately
 ?>
 
 <!DOCTYPE html>
