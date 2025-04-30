@@ -10,7 +10,7 @@ error_reporting(E_ALL);
 
 // Check if the user is logged in
 $userID = $_SESSION['userID'] ?? null;
-if (!$userID || !is_numeric($userID)) {
+if (!$userID) {
     header("Location: login.php");
     exit();
 }
