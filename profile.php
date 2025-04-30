@@ -104,17 +104,18 @@ $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
             margin-bottom: 20px;
             text-align: center;
         }
-        .top-buttons button {
+        .top-buttons a {
+            display: inline-block;
             margin: 0 10px;
             padding: 10px 20px;
             font-size: 16px;
             background-color: #007BFF;
             color: white;
-            border: none;
+            text-decoration: none;
             border-radius: 5px;
-            cursor: pointer;
+            text-align: center;
         }
-        .top-buttons button:hover {
+        .top-buttons a:hover {
             background-color: #0056b3;
         }
     </style>
@@ -123,9 +124,9 @@ $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Navigation Buttons -->
     <div class="top-buttons">
-        <button type="button" onclick="location.href='home.php'" aria-label="Return to Home">Return to Home</button>
-        <button type="button" onclick="location.href='profile.php'" aria-label="Go to Profile">Go to Profile</button>
-        <button type="button" onclick="location.href='logout.php'" aria-label="Log Out">Log Out</button>
+        <a href="home.php" aria-label="Return to Home">Return to Home</a>
+        <a href="profile.php" aria-label="Go to Profile">Go to Profile</a>
+        <a href="logout.php" aria-label="Log Out">Log Out</a>
     </div>
 
     <!-- User Profile Section -->
