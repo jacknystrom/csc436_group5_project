@@ -2,43 +2,26 @@
 session_start();
 require 'includes/database-connection.php'; // Include the database connection file
 
-// Redirect to profile page
-if (isset($_POST['go_to_profile'])) {
-    header("Location: profile.php");
-    exit();
-}
-
-// Logout functionality
-if (isset($_POST['logout'])) {
-    header("Location: logout.php");
-    exit();
-}
-
-// Return to homepage functionality
-if (isset($_POST['return_home'])) {
-    header("Location: home.php");
-    exit();
-}
-
 // Get studio name from query parameter
-$studio_name = isset($_GET['studio_name']) ? $_GET['studio_name'] : '';
+$studio_name = filter_input(INPUT_GET, 'studio_name', FILTER_SANITIZE_SPECIAL_CHARS);
 
 if (empty($studio_name)) {
-    echo "Please provide a studio name.";
-    exit;
+    die("Please provide a valid studio name.");
 }
 
 // Fetch studio information
 $studio_query = "SELECT * FROM studio WHERE name = :studio_name";
 $stmt = $pdo->prepare($studio_query);
 $stmt->bindValue(':studio_name', $studio_name, PDO::PARAM_STR);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    die("Error fetching studio details.");
+}
 
 if ($stmt->rowCount() > 0) {
     $studio = $stmt->fetch(PDO::FETCH_ASSOC);
 } else {
-    echo "<p>Studio not found.</p>";
-    exit;
+    die("<p>Studio not found.</p>");
 }
 
 // Fetch shows created by the studio
@@ -50,7 +33,11 @@ $shows_query = "
 ";
 $stmt = $pdo->prepare($shows_query);
 $stmt->bindValue(':studio_name', $studio_name, PDO::PARAM_STR);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    die("Error fetching shows for the studio.");
+}
+
 $shows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch movies created by the studio
@@ -62,21 +49,12 @@ $movies_query = "
 ";
 $stmt = $pdo->prepare($movies_query);
 $stmt->bindValue(':studio_name', $studio_name, PDO::PARAM_STR);
-$stmt->execute();
-$movies = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Display buttons
-echo "<div class='top-buttons' style='margin-bottom: 20px; text-align: center;'>";
-echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-echo "<button type='submit' name='return_home'>Return to Home</button>";
-echo "</form>";
-echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-echo "<button type='submit' name='go_to_profile'>Go to Profile</button>";
-echo "</form>";
-echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-echo "<button type='submit' name='logout'>Log Out</button>";
-echo "</form>";
-echo "</div>";
+if (!$stmt->execute()) {
+    die("Error fetching movies for the studio.");
+}
+
+$movies = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -85,8 +63,53 @@ echo "</div>";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Studio Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .top-buttons {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .top-buttons button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .top-buttons button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
 </head>
 <body>
+
+    <!-- Navigation Buttons -->
+    <div class="top-buttons">
+        <button type="button" onclick="location.href='home.php'" aria-label="Return to Home">Return to Home</button>
+        <button type="button" onclick="location.href='profile.php'" aria-label="Go to Profile">Go to Profile</button>
+        <button type="button" onclick="location.href='logout.php'" aria-label="Log Out">Log Out</button>
+    </div>
 
     <!-- Studio Details -->
     <h1>Studio: <?= htmlspecialchars($studio['name']) ?></h1>
@@ -97,7 +120,7 @@ echo "</div>";
     <!-- Shows -->
     <h2>Shows</h2>
     <?php if (count($shows) > 0): ?>
-        <table border="1" cellpadding="5" cellspacing="0">
+        <table>
             <tr>
                 <th>Show ID</th>
                 <th>Title</th>
@@ -120,7 +143,7 @@ echo "</div>";
     <!-- Movies -->
     <h2>Movies</h2>
     <?php if (count($movies) > 0): ?>
-        <table border="1" cellpadding="5" cellspacing="0">
+        <table>
             <tr>
                 <th>Movie ID</th>
                 <th>Title</th>

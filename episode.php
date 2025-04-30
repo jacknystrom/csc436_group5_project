@@ -9,26 +9,8 @@ if (!$userID) {
     exit();
 }
 
-// Redirect to profile page
-if (isset($_POST['go_to_profile'])) {
-    header("Location: profile.php");
-    exit();
-}
-
-// Logout functionality
-if (isset($_POST['logout'])) {
-    header("Location: logout.php");
-    exit();
-}
-
-// Return to homepage functionality
-if (isset($_POST['return_home'])) {
-    header("Location: home.php");
-    exit();
-}
-
 // Get the episodeID from the query string
-$episodeID = isset($_GET['episodeID']) ? $_GET['episodeID'] : '';
+$episodeID = filter_input(INPUT_GET, 'episodeID', FILTER_SANITIZE_SPECIAL_CHARS);
 
 if (empty($episodeID)) {
     die("No episodeID provided.");
@@ -43,52 +25,33 @@ $sql = "
 ";
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':episodeID', $episodeID, PDO::PARAM_STR);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    die("Error fetching episode details.");
+}
 
 if ($stmt->rowCount() > 0) {
     $episode = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Display buttons
-    echo "<div class='top-buttons' style='margin-bottom: 20px; text-align: center;'>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='return_home'>Return to Home</button>";
-    echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='go_to_profile'>Go to Profile</button>";
-    echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='logout'>Log Out</button>";
-    echo "</form>";
-    echo "</div>";
-
-    // Display episode details
-    echo "<h1>Episode: " . htmlspecialchars($episode['title']) . "</h1>";
-    echo "<p><strong>Episode Number:</strong> " . htmlspecialchars($episode['episode_num']) . "</p>";
-    echo "<p><strong>Season:</strong> " . htmlspecialchars($episode['season']) . "</p>";
-    echo "<p><strong>Run Time:</strong> " . htmlspecialchars($episode['run_time']) . "</p>";
-    echo "<p><strong>Release Date:</strong> " . htmlspecialchars($episode['release_date']) . "</p>";
-    echo "<p><strong>Description:</strong> " . nl2br(htmlspecialchars($episode['description'])) . "</p>";
-    echo "<p><strong>Show:</strong> <a href='show.php?showID=" . urlencode($episode['showID']) . "'>" . htmlspecialchars($episode['show_name']) . "</a></p>";
 } else {
-    echo "<p>No details found for the provided episodeID.</p>";
+    die("<p>No details found for the provided episodeID.</p>");
 }
 
 // Section to add a review
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review'])) {
-    $review = $_POST['review'] ?? '';
-    $rating = $_POST['rating'] ?? null;
-    $dateWatched = $_POST['date_watched'] ?? '';
+    $review = filter_input(INPUT_POST, 'review', FILTER_SANITIZE_SPECIAL_CHARS);
+    $rating = filter_input(INPUT_POST, 'rating', FILTER_VALIDATE_FLOAT);
+    $dateWatched = filter_input(INPUT_POST, 'date_watched', FILTER_SANITIZE_SPECIAL_CHARS);
 
-    if (!empty($review) && $rating !== null && !empty($dateWatched)) {
+    if (!empty($review) && $rating !== false && !empty($dateWatched)) {
         // Check if the user has already submitted a review for this episode
-        $checkSql = "SELECT COUNT(*) FROM watched_episode WHERE userID = :userID AND episodeID = :episodeID";
+        $checkSql = "SELECT EXISTS(SELECT 1 FROM watched_episode WHERE userID = :userID AND episodeID = :episodeID)";
         $checkStmt = $pdo->prepare($checkSql);
         $checkStmt->bindValue(':userID', $userID, PDO::PARAM_STR);
         $checkStmt->bindValue(':episodeID', $episodeID, PDO::PARAM_STR);
         $checkStmt->execute();
         $reviewExists = $checkStmt->fetchColumn();
 
-        if ($reviewExists > 0) {
+        if ($reviewExists) {
             echo "<p>You have already submitted a review for this episode.</p>";
         } else {
             // Insert the new review
@@ -108,42 +71,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review'])) {
             }
         }
     } else {
-        echo "<p>Please fill in all fields.</p>";
+        echo "<p>Please fill in all fields correctly.</p>";
     }
 }
 
 // Section to display all reviews for the episode
-echo "<h2>Reviews for this Episode</h2>";
 $reviewSql = "SELECT * FROM watched_episode WHERE episodeID = :episodeID ORDER BY date_watched DESC";
 $reviewStmt = $pdo->prepare($reviewSql);
 $reviewStmt->bindValue(':episodeID', $episodeID, PDO::PARAM_STR);
 $reviewStmt->execute();
 
-if ($reviewStmt->rowCount() > 0) {
-    while ($reviewRow = $reviewStmt->fetch(PDO::FETCH_ASSOC)) {
-        echo "<div style='border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;'>";
-        echo "<p><strong>User ID:</strong> " . htmlspecialchars($reviewRow['userID']) . "</p>";
-        echo "<p><strong>Review:</strong> " . nl2br(htmlspecialchars($reviewRow['review'])) . "</p>";
-        echo "<p><strong>Rating:</strong> " . htmlspecialchars($reviewRow['rating']) . "</p>";
-        echo "<p><strong>Date Watched:</strong> " . htmlspecialchars($reviewRow['date_watched']) . "</p>";
-        echo "</div>";
-    }
-} else {
-    echo "<p>No reviews available for this episode.</p>";
-}
+$reviews = $reviewStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!-- Form to add a review -->
-<h2>Add a Review</h2>
-<form method="POST">
-    <label for="review">Review:</label><br>
-    <textarea id="review" name="review" required></textarea><br><br>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Episode Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .top-buttons {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .top-buttons button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .top-buttons button:hover {
+            background-color: #0056b3;
+        }
+        .review-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
 
-    <label for="rating">Rating (0-10):</label><br>
-    <input type="number" id="rating" name="rating" step="0.1" min="0" max="10" required><br><br>
+    <!-- Navigation Buttons -->
+    <div class="top-buttons">
+        <button type="button" onclick="location.href='home.php'" aria-label="Return to Home">Return to Home</button>
+        <button type="button" onclick="location.href='profile.php'" aria-label="Go to Profile">Go to Profile</button>
+        <button type="button" onclick="location.href='logout.php'" aria-label="Log Out">Log Out</button>
+    </div>
 
-    <label for="date_watched">Date Watched:</label><br>
-    <input type="date" id="date_watched" name="date_watched" required><br><br>
+    <!-- Episode Details -->
+    <h1>Episode: <?= htmlspecialchars($episode['title']) ?></h1>
+    <p><strong>Episode Number:</strong> <?= htmlspecialchars($episode['episode_num']) ?></p>
+    <p><strong>Season:</strong> <?= htmlspecialchars($episode['season']) ?></p>
+    <p><strong>Run Time:</strong> <?= htmlspecialchars($episode['run_time']) ?></p>
+    <p><strong>Release Date:</strong> <?= htmlspecialchars($episode['release_date']) ?></p>
+    <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($episode['description'] ?? 'No description available.')) ?></p>
+    <p><strong>Show:</strong> <a href="show.php?showID=<?= urlencode($episode['showID']) ?>"><?= htmlspecialchars($episode['show_name']) ?></a></p>
 
-    <button type="submit">Submit Review</button>
-</form>
+    <!-- Reviews Section -->
+    <h2>Reviews for this Episode</h2>
+    <?php if (count($reviews) > 0): ?>
+        <?php foreach ($reviews as $review): ?>
+            <div class="review-item">
+                <p><strong>User ID:</strong> <?= htmlspecialchars($review['userID']) ?></p>
+                <p><strong>Review:</strong> <?= nl2br(htmlspecialchars($review['review'])) ?></p>
+                <p><strong>Rating:</strong> <?= htmlspecialchars($review['rating']) ?></p>
+                <p><strong>Date Watched:</strong> <?= htmlspecialchars($review['date_watched']) ?></p>
+            </div>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <p>No reviews available for this episode.</p>
+    <?php endif; ?>
+
+    <!-- Form to Add a Review -->
+    <h2>Add a Review</h2>
+    <form method="POST">
+        <label for="review">Review:</label><br>
+        <textarea id="review" name="review" required></textarea><br><br>
+
+        <label for="rating">Rating (0-10):</label><br>
+        <input type="number" id="rating" name="rating" step="0.1" min="0" max="10" required><br><br>
+
+        <label for="date_watched">Date Watched:</label><br>
+        <input type="date" id="date_watched" name="date_watched" required><br><br>
+
+        <button type="submit">Submit Review</button>
+    </form>
+</body>
+</html>

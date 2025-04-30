@@ -4,61 +4,43 @@ require 'includes/database-connection.php'; // Include the database connection f
 
 $conn = $pdo; // Use the PDO connection from the included file
 
-// Redirect to profile page
-if (isset($_POST['go_to_profile'])) {
-    header("Location: profile.php");
-    exit();
-}
-
-// Return to homepage functionality
-if (isset($_POST['return_home'])) {
-    header("Location: home.php");
-    exit();
-}
-
-// Logout functionality
-if (isset($_POST['logout'])) {
-    header("Location: logout.php");
+// Check if the user is logged in
+$userID = $_SESSION['userID'] ?? null;
+if (!$userID) {
+    header("Location: login.php");
     exit();
 }
 
 // Search functionality
-$searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
+$searchTerm = filter_input(INPUT_GET, 'search', FILTER_SANITIZE_SPECIAL_CHARS) ?? ""; // Default to an empty string
 $searchQuery = "";
-if (!empty($searchTerm)) {
+if (!empty($searchTerm) && strlen($searchTerm) >= 3) {
     $searchQuery = "WHERE title LIKE :searchTerm";
+} elseif (!empty($searchTerm)) {
+    $error = "Search term must be at least 3 characters long.";
 }
 
 // Fetch shows
 $showsQuery = "SELECT * FROM shows $searchQuery";
 $stmt = $conn->prepare($showsQuery);
-if (!empty($searchTerm)) {
+if (!empty($searchTerm) && strlen($searchTerm) >= 3) {
     $stmt->bindValue(':searchTerm', '%' . $searchTerm . '%', PDO::PARAM_STR);
 }
-$stmt->execute();
+if (!$stmt->execute()) {
+    die("Error fetching shows.");
+}
 $showsResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch movies
 $moviesQuery = "SELECT * FROM movie $searchQuery";
 $stmt = $conn->prepare($moviesQuery);
-if (!empty($searchTerm)) {
+if (!empty($searchTerm) && strlen($searchTerm) >= 3) {
     $stmt->bindValue(':searchTerm', '%' . $searchTerm . '%', PDO::PARAM_STR);
 }
-$stmt->execute();
+if (!$stmt->execute()) {
+    die("Error fetching movies.");
+}
 $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Display buttons
-    echo "<div class='top-buttons' style='margin-bottom: 20px; text-align: center;'>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='return_home'>Return to Home</button>";
-    echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='go_to_profile'>Go to Profile</button>";
-    echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='logout'>Log Out</button>";
-    echo "</form>";
-    echo "</div>";
 ?>
 
 <!DOCTYPE html>
@@ -71,6 +53,23 @@ $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+        }
+        .top-buttons {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .top-buttons button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .top-buttons button:hover {
+            background-color: #0056b3;
         }
         table {
             width: 100%;
@@ -97,23 +96,52 @@ $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .search-bar input[type="text"] {
             padding: 8px;
             width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
         .search-bar button {
             padding: 8px 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-bar button:hover {
+            background-color: #0056b3;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
 
+    <!-- Navigation Buttons -->
+    <div class="top-buttons">
+        <button type="button" onclick="location.href='home.php'" aria-label="Return to Home">Return to Home</button>
+        <button type="button" onclick="location.href='profile.php'" aria-label="Go to Profile">Go to Profile</button>
+        <button type="button" onclick="location.href='logout.php'" aria-label="Log Out">Log Out</button>
+    </div>
+
     <h1>Welcome to the Content Logging Application</h1>
 
+    <!-- Search Bar -->
     <div class="search-bar">
         <form method="GET" action="">
-            <input type="text" name="search" placeholder="Search for a show or movie..." value="<?php echo htmlspecialchars($searchTerm); ?>">
+            <input type="text" name="search" placeholder="Search for a show or movie..." value="<?= htmlspecialchars($searchTerm) ?>">
             <button type="submit">Search</button>
         </form>
     </div>
 
+    <!-- Error Message -->
+    <?php if (!empty($error)): ?>
+        <div class="error-message"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <!-- Shows Section -->
     <h2>Available Shows</h2>
     <table>
         <thead>
@@ -131,15 +159,15 @@ $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php foreach ($showsResult as $row): ?>
                     <tr>
                         <td>
-                            <a href="show.php?showID=<?php echo urlencode($row['showID']); ?>">
-                                <?php echo htmlspecialchars($row['title']); ?>
+                            <a href="show.php?showID=<?= urlencode($row['showID']) ?>">
+                                <?= htmlspecialchars($row['title']) ?>
                             </a>
                         </td>
-                        <td><?php echo htmlspecialchars($row['episode_count']); ?></td>
-                        <td><?php echo htmlspecialchars($row['total_seasons']); ?></td>
-                        <td><?php echo htmlspecialchars($row['genre']); ?></td>
-                        <td><?php echo htmlspecialchars($row['description']); ?></td>
-                        <td><?php echo htmlspecialchars($row['studio_name']); ?></td>
+                        <td><?= htmlspecialchars($row['episode_count']) ?></td>
+                        <td><?= htmlspecialchars($row['total_seasons']) ?></td>
+                        <td><?= htmlspecialchars($row['genre']) ?></td>
+                        <td><?= htmlspecialchars($row['description']) ?></td>
+                        <td><?= htmlspecialchars($row['studio_name']) ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -150,6 +178,7 @@ $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </tbody>
     </table>
 
+    <!-- Movies Section -->
     <h2>Available Movies</h2>
     <table>
         <thead>
@@ -166,14 +195,14 @@ $moviesResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php foreach ($moviesResult as $row): ?>
                     <tr>
                         <td>
-                            <a href="movie.php?movieID=<?php echo urlencode($row['movieID']); ?>">
-                                <?php echo htmlspecialchars($row['title']); ?>
+                            <a href="movie.php?movieID=<?= urlencode($row['movieID']) ?>">
+                                <?= htmlspecialchars($row['title']) ?>
                             </a>
                         </td>
-                        <td><?php echo htmlspecialchars($row['run_time']); ?></td>
-                        <td><?php echo htmlspecialchars($row['release_date']); ?></td>
-                        <td><?php echo htmlspecialchars($row['description']); ?></td>
-                        <td><?php echo htmlspecialchars($row['studio_name']); ?></td>
+                        <td><?= htmlspecialchars($row['run_time']) ?></td>
+                        <td><?= htmlspecialchars($row['release_date']) ?></td>
+                        <td><?= htmlspecialchars($row['description']) ?></td>
+                        <td><?= htmlspecialchars($row['studio_name']) ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
