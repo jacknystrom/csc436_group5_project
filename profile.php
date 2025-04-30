@@ -3,6 +3,11 @@ require 'includes/database-connection.php'; // Include the database connection f
 
 session_start();
 
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Logout functionality
 if (isset($_POST['logout'])) {
     header("Location: logout.php");
@@ -17,8 +22,7 @@ if (isset($_POST['return_home'])) {
 
 $userID = $_SESSION['userID'] ?? null;
 if (!$userID || !is_numeric($userID)) {
-    header("Location: login.php");
-    exit();
+    die("Invalid userID. Please log in again.");
 }
 
 // Handle review deletion
@@ -51,8 +55,7 @@ $stmt->execute(['userID' => $userID]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
-    header("Location: login.php");
-    exit();
+    die("User not found. Please log in again.");
 }
 
 // Fetch episode reviews
