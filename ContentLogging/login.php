@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Start output buffering
 session_start();
 require 'includes/database-connection.php';
 
@@ -9,7 +10,7 @@ $pass = '';
 // Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING); // Sanitize username
-    $pass = $_POST['password']; // Passwords should not be sanitized, as they are hashed
+    $pass = $_POST['password']; // Password should not be sanitized since it's hashed
 
     // Use prepared statement to prevent SQL injection
     $stmt = $pdo->prepare("SELECT userID FROM `users` WHERE username = ? AND password = SHA2(?, 256)");
@@ -19,14 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($stmt->rowCount() === 1) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $_SESSION['userID'] = $result['userID']; // Store userID in session
-        $_SESSION['username'] = $user; // Store username in session
+        $_SESSION['userID'] = $result['userID'];
+        $_SESSION['username'] = $user;
 
         // Redirect based on userID
-        if ($result['userID'] < 6) {
-            header("Location: home_admin.php"); // Redirect to admin page
+        if ((int)$result['userID'] < 6) {
+            header("Location: home_admin.php");
         } else {
-            header("Location: home.php"); // Redirect to regular home page
+            header("Location: home.php");
         }
         exit();
     } else {
@@ -42,9 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -99,5 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
     <br>
     <a href="sign_up.php" class="signup-button">Sign Up</a>
+<?php ob_end_flush(); ?>
 </body>
 </html>
