@@ -1,5 +1,0 @@
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/andrewlangille/public_html/csc436group5_project
-    - /bin/cp -R * $DEPLOYPATH
