@@ -3,6 +3,18 @@ require 'includes/database-connection.php'; // Include the database connection f
 
 session_start();
 
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Check if the user is logged in
+$userID = $_SESSION['userID'] ?? null;
+if (!$userID || !is_numeric($userID)) {
+    header("Location: login.php");
+    exit();
+}
+
 // Logout functionality
 if (isset($_POST['logout'])) {
     header("Location: logout.php");
@@ -12,12 +24,6 @@ if (isset($_POST['logout'])) {
 // Return to homepage functionality
 if (isset($_POST['return_home'])) {
     header("Location: home.php");
-    exit();
-}
-
-$userID = $_SESSION['userID'] ?? null;
-if (!$userID) {
-    header("Location: login.php");
     exit();
 }
 
@@ -65,7 +71,6 @@ $movieStmt = $pdo->prepare("SELECT * FROM watched_movie WHERE userID = :userID")
 $movieStmt->execute(['userID' => $userID]);
 $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
