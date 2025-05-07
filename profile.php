@@ -3,6 +3,18 @@ require 'includes/database-connection.php'; // Include the database connection f
 
 session_start();
 
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Check if the user is logged in
+$userID = $_SESSION['userID'] ?? null;
+if (!$userID) {
+    header("Location: login.php");
+    exit();
+}
+
 // Logout functionality
 if (isset($_POST['logout'])) {
     header("Location: logout.php");
@@ -15,35 +27,28 @@ if (isset($_POST['return_home'])) {
     exit();
 }
 
-// Redirect to profile page (if needed)
-if (isset($_POST['go_to_profile'])) {
-    header("Location: profile.php");
-    exit();
-}
-
-$userID = $_SESSION['userID'] ?? null;
-if (!$userID || !is_numeric($userID)) {
-    header("Location: login.php");
-    exit();
-}
-
 // Handle review deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_review'])) {
-    $reviewType = $_POST['review_type'] ?? '';
-    $reviewID = $_POST['review_id'] ?? '';
+    $reviewType = filter_input(INPUT_POST, 'review_type', FILTER_SANITIZE_SPECIAL_CHARS);
+    $reviewID = filter_input(INPUT_POST, 'review_id', FILTER_SANITIZE_NUMBER_INT);
 
-    if ($reviewType === 'episode' && is_numeric($reviewID)) {
+    if ($reviewType === 'episode' && $reviewID) {
         // Delete from watched_episode
         $deleteStmt = $pdo->prepare("DELETE FROM watched_episode WHERE userID = :userID AND episodeID = :reviewID");
-        $deleteStmt->execute(['userID' => $userID, 'reviewID' => $reviewID]);
-    } elseif ($reviewType === 'movie' && is_numeric($reviewID)) {
+        if ($deleteStmt->execute(['userID' => $userID, 'reviewID' => $reviewID])) {
+            echo "<p>Episode review deleted successfully.</p>";
+        } else {
+            echo "<p>Error deleting episode review.</p>";
+        }
+    } elseif ($reviewType === 'movie' && $reviewID) {
         // Delete from watched_movie
         $deleteStmt = $pdo->prepare("DELETE FROM watched_movie WHERE userID = :userID AND movieID = :reviewID");
-        $deleteStmt->execute(['userID' => $userID, 'reviewID' => $reviewID]);
+        if ($deleteStmt->execute(['userID' => $userID, 'reviewID' => $reviewID])) {
+            echo "<p>Movie review deleted successfully.</p>";
+        } else {
+            echo "<p>Error deleting movie review.</p>";
+        }
     }
-    // Redirect to refresh the page after deletion
-    header("Location: profile.php");
-    exit();
 }
 
 // Fetch user profile
@@ -65,21 +70,7 @@ $episodeReviews = $episodeStmt->fetchAll(PDO::FETCH_ASSOC);
 $movieStmt = $pdo->prepare("SELECT * FROM watched_movie WHERE userID = :userID");
 $movieStmt->execute(['userID' => $userID]);
 $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Display buttons
-    echo "<div class='top-buttons' style='margin-bottom: 20px; text-align: center;'>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='return_home'>Return to Home</button>";
-    echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='go_to_profile'>Go to Profile</button>";
-    echo "</form>";
-    echo "<form method='post' action='' style='display: inline-block; margin: 0 10px;'>";
-    echo "<button type='submit' name='logout'>Log Out</button>";
-    echo "</form>";
-    echo "</div>";
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,6 +90,8 @@ $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .review-item {
             margin-bottom: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
         }
         .delete-button {
             padding: 10px 15px;
@@ -112,10 +105,36 @@ $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
         .delete-button:hover {
             background-color: #CC0000;
         }
+        .top-buttons {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .top-buttons a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .top-buttons a:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Navigation Buttons -->
+    <div class="top-buttons">
+        <a href="home.php" aria-label="Return to Home">Return to Home</a>
+        <a href="profile.php" aria-label="Go to Profile">Go to Profile</a>
+        <a href="logout.php" aria-label="Log Out">Log Out</a>
+    </div>
+
+    <!-- User Profile Section -->
     <div class="profile">
         <h1>User Profile</h1>
         <p><strong>First Name:</strong> <?= htmlspecialchars($user['fname']) ?></p>
@@ -124,6 +143,7 @@ $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
         <p><strong>Username:</strong> <?= htmlspecialchars($user['username']) ?></p>
     </div>
 
+    <!-- Episode Reviews Section -->
     <div class="reviews">
         <h2>Episode Reviews</h2>
         <?php if (count($episodeReviews) > 0): ?>
@@ -145,6 +165,7 @@ $movieReviews = $movieStmt->fetchAll(PDO::FETCH_ASSOC);
         <?php endif; ?>
     </div>
 
+    <!-- Movie Reviews Section -->
     <div class="reviews">
         <h2>Movie Reviews</h2>
         <?php if (count($movieReviews) > 0): ?>
