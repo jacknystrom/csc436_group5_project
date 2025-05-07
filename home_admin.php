@@ -12,7 +12,10 @@ if (!isset($_SESSION['userID']) || $_SESSION['userID'] >= 6) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_movie'])) {
         // Add a movie
-        $movieID = str_pad($_POST['movieID'], 6, '0', STR_PAD_LEFT);
+        $stmt = $pdo->query("SELECT MAX(CAST(movieID AS UNSIGNED)) AS max_id FROM movie");
+        $row = $stmt->fetch();
+        $maxMovieID = $row['max_id'] ?? 0;
+        $movieID = str_pad($maxMovieID + 1, 6, '0', STR_PAD_LEFT);
         $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_STRING);
         $hours = $_POST['run_time_hours'];
         $minutes = $_POST['run_time_minutes'];
@@ -135,10 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Add Movie Form -->
     <form method="POST">
         <h2>Add Movie</h2>
-        <div>
-            <label for="movieID">Movie ID:</label>
-            <input type="text" id="movieID" name="movieID" required>
-        </div>
         <div>
             <label for="title">Title:</label>
             <input type="text" id="title" name="title" required>
